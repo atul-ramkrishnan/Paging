@@ -1,4 +1,5 @@
 import random
+import math
 
 
 def generateRandomSequence(k, N, n, epsilon):
@@ -37,7 +38,13 @@ def generateH(seq):
 
 
 def addNoise(hseq, gamma, omega):
-    pass
+    h_hat = hseq.copy()
+    for i in range(len(hseq)):
+        if random.random() >= 1 - gamma:
+            l = max(i + 2, hseq[i] - math.floor(omega / 2))
+            h_hat[i] = random.randint(l, l + omega)
+
+    return h_hat
 
 def blindOracle(k, seq, hseq):
     pass
@@ -59,8 +66,14 @@ def testGenerateH():
     h = generateH(seq)
     assert h == [6, 6, 6, 6, 6]
 
+def testAddNoise():
+    hseq = [7, 4, 9, 8, 9, 9, 9, 9]
+    hseqNoisy = addNoise(hseq, 0.7, 1)
+    print(hseqNoisy)
+
 def main():
     testGenerateH()
+    testAddNoise()
 
 
 if __name__ == "__main__":
