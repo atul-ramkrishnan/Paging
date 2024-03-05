@@ -19,8 +19,22 @@ def generateRandomSequence(k, N, n, epsilon):
     
     return p
 
-def generate(seq):
-    pass
+def generateH(seq):
+    n = len(seq)
+    h = [n + 1] * n
+    last_positions = {}  # Dictionary to store the last position of each element
+
+    # Traverse the sequence in reverse
+    for i in range(n - 1, -1, -1):
+        element = seq[i]
+        if element in last_positions:
+            # If the element has been seen before, update h[i] with the position of the next occurrence
+            h[i] = last_positions[element] + 1
+        # Update the last position of the current element
+        last_positions[element] = i
+
+    return h
+
 
 def addNoise(hseq, gamma, omega):
     pass
@@ -28,8 +42,25 @@ def addNoise(hseq, gamma, omega):
 def blindOracle(k, seq, hseq):
     pass
 
+def testGenerateH():
+    seq = [1, 2, 3, 2, 4, 5, 1, 2]
+    h = generateH(seq)
+    assert h == [7, 4, 9, 8, 9, 9, 9, 9]
+
+    seq = [1, 1, 1, 1, 1]
+    h = generateH(seq)
+    assert h == [2, 3, 4, 5, 6]
+
+    seq = [1, 2, 3, 4, 5]
+    h = generateH(seq)
+    assert h == [6, 6, 6, 6, 6]
+
+    seq = [5, 4, 3, 2, 1]
+    h = generateH(seq)
+    assert h == [6, 6, 6, 6, 6]
+
 def main():
-    pass
+    testGenerateH()
 
 
 if __name__ == "__main__":
