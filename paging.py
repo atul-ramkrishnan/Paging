@@ -12,9 +12,9 @@ def generateRandomSequence(k, N, n, epsilon):
         epsilon(float): Amount of locality in the sequence 
     
     Returns:
-    list: A list of integers representing the generated sequence of pages.
+        list: A list of integers representing the generated sequence of pages.
     """
-    
+
     p = [None] * n
     p[0 : k] = range(1, k + 1)
     L = set(range(1, k + 1))
@@ -34,8 +34,15 @@ def generateRandomSequence(k, N, n, epsilon):
 
 def generateH(seq):
     """
+    Generates "h" values for a sequence of page requests.
+
+    Parameters:
+        seq (list): A list of integers representing a sequence of page requests
     
+    Returns:
+        list: A list of integers representing "h" values
     """
+
     n = len(seq)
     h = [n + 1] * n
     last_positions = {}  # Dictionary to store the last position of each element
@@ -53,15 +60,37 @@ def generateH(seq):
 
 
 def addNoise(hseq, gamma, omega):
-    h_hat = hseq.copy()
+    """
+    Adds noise to the "h" sequence.
+
+    Parameters:
+        hseq (list): A list of integers representing the "h" sequence
+        gamma (float): Noise parameter representing the probability with which noise is added
+        omega (float): Noise parameter representing the amount of noise to be added.
+    
+    Returns:
+        list: A list of integers representing "h" values with added noise
+    """
+
+    hHat = hseq.copy()
     for i in range(len(hseq)):
         if random.random() >= 1 - gamma:
             l = max(i + 2, hseq[i] - math.floor(omega / 2))
-            h_hat[i] = random.randint(l, l + omega)
+            hHat[i] = random.randint(l, l + omega)
 
-    return h_hat
+    return hHat
 
 def blindOracle(k, seq, hseq):
+    """
+    Parameters:
+        k (int): The size of the cache
+        seq (list): A list of integers representing the page requests
+        hseq (list): A list of integers representing the predicted h values
+
+    Returns:
+        int: The number of page faults
+    """
+
     cache = [(None, float('inf')) for _ in range(k)]
     numCacheHits = 0
     
@@ -111,8 +140,8 @@ def testAddNoise():
 def testBlindOracle():
     seq = [1, 2, 3, 2, 4, 3]
     hseq = [7, 4, 9, 7, 7, 7]
-    cacheMisses = blindOracle(3, seq, hseq)
-    print(cacheMisses)
+    pageFaults = blindOracle(3, seq, hseq)
+    print(pageFaults)
 
 def main():
     # testGenerateH()
