@@ -5,6 +5,7 @@ import math
 def generateRandomSequence(k, N, n, epsilon):
     """
     Generates a random sequence of pages.
+
     Parameters:
         k (int): The size of the cache
         N (int): The range of the page request [1..N]
@@ -12,7 +13,7 @@ def generateRandomSequence(k, N, n, epsilon):
         epsilon(float): Amount of locality in the sequence 
     
     Returns:
-        list: A list of integers representing the generated sequence of pages.
+        list: A list of integers representing the generated sequence of pages
     """
     p = [None] * n
     p[0 : k] = range(1, k + 1)
@@ -36,13 +37,13 @@ def generateRandomSequence(k, N, n, epsilon):
 
 def generateH(seq):
     """
-    Generates "h" values for a sequence of page requests.
+    Generates h-values for a sequence of page requests.
 
     Parameters:
         seq (list): A list of integers representing a sequence of page requests
     
     Returns:
-        list: A list of integers representing "h" values
+        list: A list of integers representing h-values
     """
     n = len(seq)
     h = [n + 1] * n
@@ -62,20 +63,20 @@ def generateH(seq):
 
 def addNoise(hseq, gamma, omega):
     """
-    Adds noise to the "h" sequence.
+    Adds noise to the h-values
 
     Parameters:
-        hseq (list): A list of integers representing the "h" sequence
+        hseq (list): A list of integers representing the h-values
         gamma (float): Noise parameter representing the probability with which noise is added
         omega (float): Noise parameter representing the amount of noise to be added.
     
     Returns:
-        list: A list of integers representing "h" values with added noise
+        list: A list of integers representing h-values with added noise
     """
     hHat = hseq.copy()
     for i in range(len(hseq)):
         if random.random() >= 1 - gamma:
-            # With probability 1 - gamma, add noise to the "real" values of h
+            # With probability 1 - gamma, add noise to the h-values
             l = max(i + 2, hseq[i] - math.floor(omega / 2))
             hHat[i] = random.randint(l, l + omega)
 
@@ -83,6 +84,7 @@ def addNoise(hseq, gamma, omega):
 
 def blindOracle(k, seq, hseq):
     """
+    Runs the blindOracle algorithm
     Parameters:
         k (int): The size of the cache
         seq (list): A list of integers representing the page requests
@@ -113,12 +115,15 @@ def blindOracle(k, seq, hseq):
         if not pageHit:
             cache[idxMax] = (p, h)
 
-    # Page faults
+    # Number of Page Faults
     return len(seq) - numPageHits
 
 def testGenerateH():
     """
     Test function for generateH function
+
+    Returns:
+        None
     """
     seq = [1, 2, 3, 2, 4, 5, 1, 2]
     h = generateH(seq)
@@ -138,7 +143,10 @@ def testGenerateH():
 
 def testAddNoise():
     """
-    Test function for addNoise function
+    Test function for addNoise function.
+
+    Returns:
+        None
     """
     hseq = [7, 4, 9, 8, 9, 9, 9, 9]
     hseqNoisy = addNoise(hseq, 0.7, 1)
@@ -146,7 +154,10 @@ def testAddNoise():
 
 def testBlindOracle():
     """
-    Test function for blindOracle function
+    Test function for blindOracle function.
+
+    Returns:
+        None
     """
 
     seq = [1, 2, 3, 2, 4, 3]
