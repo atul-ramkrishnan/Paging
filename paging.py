@@ -14,7 +14,7 @@ def generateRandomSequence(k, N, n, epsilon):
     Returns:
     list: A list of integers representing the generated sequence of pages.
     """
-
+    
     p = [None] * n
     p[0 : k] = range(1, k + 1)
     L = set(range(1, k + 1))
