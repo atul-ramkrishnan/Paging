@@ -14,7 +14,6 @@ def generateRandomSequence(k, N, n, epsilon):
     Returns:
         list: A list of integers representing the generated sequence of pages.
     """
-
     p = [None] * n
     p[0 : k] = range(1, k + 1)
     L = set(range(1, k + 1))
@@ -24,9 +23,12 @@ def generateRandomSequence(k, N, n, epsilon):
         y = random.choice(list(set(range(1, N + 1)).difference(L)))
 
         if random.random() < epsilon:
+            # With probability epsilon, set p[i] to x
             p[i] = x
         else:
+            # With probability 1 - epsilon, set p[i] to y
             p[i] = y
+            # Update the set L
             L.remove(x)
             L.add(y)
     
@@ -42,7 +44,6 @@ def generateH(seq):
     Returns:
         list: A list of integers representing "h" values
     """
-
     n = len(seq)
     h = [n + 1] * n
     last_positions = {}  # Dictionary to store the last position of each element
@@ -71,10 +72,10 @@ def addNoise(hseq, gamma, omega):
     Returns:
         list: A list of integers representing "h" values with added noise
     """
-
     hHat = hseq.copy()
     for i in range(len(hseq)):
         if random.random() >= 1 - gamma:
+            # With probability 1 - gamma, add noise to the "real" values of h
             l = max(i + 2, hseq[i] - math.floor(omega / 2))
             hHat[i] = random.randint(l, l + omega)
 
@@ -90,32 +91,35 @@ def blindOracle(k, seq, hseq):
     Returns:
         int: The number of page faults
     """
-
     cache = [(None, float('inf')) for _ in range(k)]
-    numCacheHits = 0
+    numPageHits = 0
     
     for p, h in zip(seq, hseq):
-        cacheHit = False
-        hMax = float('-inf')
+        pageHit = False
+        hMax = 0
         idxMax = -1
 
         # Iterate over cache to find if element is already in cache or to find the element with maximum h-value
         for idx, (elem, elemH) in enumerate(cache):
-            if p == elem:  # Cache hit
+            if p == elem:  # Page hit
                 cache[idx] = (p, h)  # Update h-value in cache
-                cacheHit = True
-                numCacheHits += 1
+                pageHit = True
+                numPageHits += 1
                 break
             if elemH > hMax:  # Find the max h-value in cache and its index
                 hMax = elemH
                 idxMax = idx
 
-        if not cacheHit:
+        if not pageHit:
             cache[idxMax] = (p, h)
 
-    return len(seq) - numCacheHits
+    # Page faults
+    return len(seq) - numPageHits
 
 def testGenerateH():
+    """
+    Test function for generateH function
+    """
     seq = [1, 2, 3, 2, 4, 5, 1, 2]
     h = generateH(seq)
     assert h == [7, 4, 9, 8, 9, 9, 9, 9]
@@ -133,11 +137,18 @@ def testGenerateH():
     assert h == [6, 6, 6, 6, 6]
 
 def testAddNoise():
+    """
+    Test function for addNoise function
+    """
     hseq = [7, 4, 9, 8, 9, 9, 9, 9]
     hseqNoisy = addNoise(hseq, 0.7, 1)
     print(hseqNoisy)
 
 def testBlindOracle():
+    """
+    Test function for blindOracle function
+    """
+
     seq = [1, 2, 3, 2, 4, 3]
     hseq = [7, 4, 9, 7, 7, 7]
     pageFaults = blindOracle(3, seq, hseq)
