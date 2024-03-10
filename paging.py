@@ -8,7 +8,7 @@ def generateRandomSequence(k, N, n, epsilon):
 
     Parameters:
         k (int): The size of the cache
-        N (int): The range of the page request [1..N]
+        N (int): The range of the page request [1...N]
         n (int): The number of page requests to be generated
         epsilon(float): Amount of locality in the sequence 
     
@@ -59,7 +59,6 @@ def generateH(seq):
         last_positions[element] = i
 
     return h
-
 
 def addNoise(hseq, gamma, omega):
     """
@@ -119,6 +118,10 @@ def blindOracle(k, seq, hseq):
     # Number of Page Faults
     return len(seq) - numPageHits
 
+# ---------------------------------------------------
+# UNIT TESTS
+# ---------------------------------------------------
+
 def testGenerateRandomSequence():
     """
     Test function for generateRandomSequence function.
@@ -127,14 +130,14 @@ def testGenerateRandomSequence():
         None
     """
     print("========== Testing generateRandomSequence ==========")
-    k, N, n, epsilon = 5, 100, 10, 0.5
-    sequence = generateRandomSequence(k, N, n, epsilon)
-    assert len(sequence) == n, "Incorrect length of sequence generated"
-    assert sequence[:k] == list(range(1, k + 1)), "Initial elements are incorrect"
-    assert all(1 <= x <= N for x in sequence), "Elements in sequence out of range"
-
     trials = 10     # Number of times to run the test for statistical significance
     for _ in range(trials):
+        k, N, n, epsilon = 5, 100, 10, 0.5
+        sequence = generateRandomSequence(k, N, n, epsilon)
+        assert len(sequence) == n, "Incorrect length of sequence generated"
+        assert sequence[:k] == list(range(1, k + 1)), "Initial elements are incorrect"
+        assert all(1 <= x <= N for x in sequence), "Elements in sequence out of range"
+
         k, N, n, epsilon = 5, 1000, 100, 1.0
         sequence = generateRandomSequence(k, N, n, epsilon)
         assert all(1 <= x <= k for x in sequence), "Invalid element in sequence"
@@ -184,14 +187,16 @@ def testAddNoise():
     hseqNoisy = addNoise(hseq, gamma, omega)
     assert hseq == hseqNoisy, "Noise added to h-values when gamma = 0"
 
-    hseq = [12, 4, 5, 7, 8, 9, 10, 12, 12, 11, 12]
-    gamma, omega = 1, 10
     trials = 10    # Number of times to run the test for statistical significance
+    hseq = [12, 4, 5, 7, 8, 9, 10, 12, 12, 11, 12]
+    num_steps = 10
     for _ in range(trials):
-        hHat = addNoise(hseq, gamma, omega)
-        for i, (original, noisy) in enumerate(zip(hseq, hHat)):
-            l = max(i + 2, original - math.floor(omega / 2))
-            assert(l <= noisy <= l + omega), "Noise added not within expected range"
+        for gamma in [i / num_steps for i in range(num_steps + 1)]:
+            for omega in range(1, 10):
+                hHat = addNoise(hseq, gamma, omega)
+                for i, (original, noisy) in enumerate(zip(hseq, hHat)):
+                    l = max(i + 2, original - math.floor(omega / 2))
+                    assert(l <= noisy <= l + omega), "Noise added not within expected range"
 
     print("All tests passed.")
 
@@ -216,6 +221,18 @@ def testBlindOracle():
     pageFaults = blindOracle(k, seq, hseq)
     assert pageFaults == 5, "Incorrect number of page faults"
 
+    k = 1
+    seq = [1, 2, 3, 2, 4, 3]
+    hseq = [7, 4, 9, 7, 7, 7]
+    pageFaults = blindOracle(k, seq, hseq)
+    assert pageFaults == 6, "Incorrect number of page faults"
+
+    k = 6
+    seq = [1, 2, 3, 2, 4, 3]
+    hseq = [7, 4, 9, 7, 7, 7]
+    pageFaults = blindOracle(k, seq, hseq)
+    assert pageFaults == 4, "Incorrect number of page faults"
+
     k = 3
     seq = list(range(1, 10))
     hseq = [10] * 9
@@ -224,6 +241,10 @@ def testBlindOracle():
 
     print("All tests passed.")
 
+# ---------------------------------------------------
+# MAIN
+# ---------------------------------------------------
+    
 def main():
     """
     Main function. Runs all the tests.
@@ -235,7 +256,6 @@ def main():
     testGenerateH()
     testAddNoise()
     testBlindOracle()
-
 
 if __name__ == "__main__":
     main()
