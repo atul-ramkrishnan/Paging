@@ -1,6 +1,11 @@
 import random
 import math
 
+def _initializeLRUCache(k):
+    return [None] * k
+
+def _initializeBlindOracleCache(k):
+    return [(None, float('inf')) for _ in range(k)]
 
 def generateRandomSequence(k, N, n, epsilon):
     """
@@ -81,7 +86,7 @@ def addNoise(hseq, gamma, omega):
 
     return hHat
 
-def blindOracle(k, seq, hseq):
+def blindOracle(k, seq, hseq, initCache=None):
     """
     Runs the blindOracle algorithm.
 
@@ -93,7 +98,11 @@ def blindOracle(k, seq, hseq):
     Returns:
         int: The number of page faults
     """
-    cache = [(None, float('inf')) for _ in range(k)]
+
+    if initCache is None:
+        cache = _initializeBlindOracleCache(k)
+    else:
+        cache = initCache
     numPageHits = 0
     
     for p, h in zip(seq, hseq):
@@ -117,6 +126,82 @@ def blindOracle(k, seq, hseq):
 
     # Number of Page Faults
     return len(seq) - numPageHits
+
+def LRU(k, seq, initCache=None):
+    """
+    Runs the LRU algorithm.
+
+    Parameters:
+        k (int): The size of the cache
+        seq (list): A list of integers representing the page requests
+
+    Returns:
+        int: The number of page faults
+    """
+
+    if initCache is None:
+        cache = _initializeLRUCache(k)
+    else:
+        cache = initCache
+
+    numPageFaults = 0
+    for page in seq:
+        if page in cache:
+            # Cache hit, move page to the end to mark it as recently used
+            cache.remove(page)
+            cache.append(page)
+        else:
+            # Cache miss
+            numPageFaults += 1
+            if len(cache) >= k:
+                # Cache is full, remove the least recently used item
+                cache.pop(0)
+            cache.append(page)
+
+    return numPageFaults
+
+def combinedAlg(k, seq, hseq, thr):
+    """
+    Runs the "Combined" algorithm.
+
+    Parameters:
+        k (int): The size of the cache
+        seq (list): A list of integers representing the page requests
+        hseq (list): A list of integers representing the predicted h values
+        thr (float): Threshold parameter between 0 and 1
+
+    Returns:
+        int: The number of page faults
+    """
+
+    numPageFaults = 0
+    f1, f2 = 0, 0  # Page faults for LRU and blindOracle
+    cacheLRU = _initializeLRUCache(k)
+    cacheBlindOracle = _initializeBlindOracleCache(k)
+    useLRU = True  # Start with LRU
+
+    for i in range(len(seq)):
+        page = seq[i:i+1]
+        h_value = hseq[i:i+1]
+
+        faultLRU = LRU(k, page, cacheLRU)
+        f1 += faultLRU
+
+        faultBlindOracle = blindOracle(k, page, h_value, cacheBlindOracle)
+        f2 += faultBlindOracle
+
+        # Increment numPageFaults by the number of faults incurred by the active strategy
+        numPageFaults += faultLRU if useLRU else faultBlindOracle
+
+        # Check if a switch is needed
+        if useLRU and f1 > (1 + thr) * f2:
+            useLRU = False
+            numPageFaults += k  # Account for cache switch
+        elif not useLRU and f2 > (1 + thr) * f1:
+            useLRU = True
+            numPageFaults += k  # Account for cache switch
+        
+    return numPageFaults
 
 # ---------------------------------------------------
 # UNIT TESTS
@@ -241,6 +326,62 @@ def testBlindOracle():
 
     print("All tests passed.")
 
+def testLRU():
+    """
+    Test function for LRU function.
+
+    Returns:
+        None
+    """
+    print("========== Testing LRU ==========")
+
+    k = 4
+    seq = [7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2]
+    pageFaults = LRU(k, seq)
+    assert pageFaults == 6, "Incorrect number of page faults"
+
+    k = 1
+    seq = list(range(1, 11))
+    pageFaults = LRU(k, seq)
+    assert pageFaults == 10, "Incorrect number of page faults"
+
+    k = 10
+    seq = [1] * 100
+    pageFaults = LRU(k, seq)
+    assert pageFaults == 1, "Incorrect number of page faults"
+
+    print("All tests passed.")
+
+def testcombinedAlg():
+    """
+    Test function for combinedAlg function.
+
+    Returns:
+        None
+    """
+    print("========== Testing combinedAlg ==========")
+    k = 3
+    seq = [1, 2, 3, 2, 1, 4, 3, 5, 6, 4, 3, 5, 3, 5, 6, 7, 2, 1, 5, 7]
+    hseq = generateH(seq)
+    thr = 0
+    pageFaultsCombined = combinedAlg(k, seq, hseq, thr)
+    assert pageFaultsCombined == 14, "Incorrect number of page faults"
+
+    thr = 0.3
+    pageFaultsCombined = combinedAlg(k, seq, hseq, thr)
+    assert pageFaultsCombined == 15, "Incorrect number of page faults"
+
+    thr = 1
+    pageFaultsCombined = combinedAlg(k, seq, hseq, thr)
+    assert pageFaultsCombined == 16, "Incorrect number of page faults"
+
+    hseqNeg = [-h for h in hseq]
+    thr = 0
+    pageFaultsCombined = combinedAlg(k, seq, hseqNeg, thr)
+    assert pageFaultsCombined == 16, "Incorrect number of page faults"
+
+    print("All tests passed.")
+
 # ---------------------------------------------------
 # MAIN
 # ---------------------------------------------------
@@ -256,6 +397,8 @@ def main():
     testGenerateH()
     testAddNoise()
     testBlindOracle()
+    testLRU()
+    testcombinedAlg()
 
 if __name__ == "__main__":
     main()
