@@ -1,5 +1,10 @@
 import random
 import math
+import os
+
+# ---------------------------------------------------
+# ALGORITHMS
+# ---------------------------------------------------
 
 def _initializeLRUCache(k):
     return [None] * k
@@ -204,6 +209,107 @@ def combinedAlg(k, seq, hseq, thr):
     return numPageFaults
 
 # ---------------------------------------------------
+# EXPERIMENTS
+# ---------------------------------------------------
+
+def runSingleTrial(k, N, n, epsilon, gamma, omega):
+    """
+    Runs a single trial of paging algorithms using generated page request sequences
+    and associated h-values, both original and with added noise, to evaluate
+    performance in terms of page faults.
+
+    Parameters:
+        k (int): The size of the cache for each paging algorithm.
+        N (int): The maximum page number in the page request sequence (range 1 to N).
+        n (int): The total number of page requests to generate for the sequence.
+        epsilon (float): The probability factor controlling the locality in the page sequence.
+        gamma (float): The probability with which noise is added to each h-value in the sequence.
+        omega (int): The maximum amount of noise that can be added to each h-value.
+
+    Returns:
+        dict: A dictionary containing the number of page faults incurred by each algorithm.
+    """
+    seq = generateRandomSequence(k, N, n, epsilon)
+    hseq = generateH(seq)
+    hseqNoisy = addNoise(hseq, gamma, omega)
+    thr = 0.5
+
+    results = {
+        'opt': blindOracle(k, seq, hseq),
+        'blindoracle': blindOracle(k, seq, hseqNoisy),
+        'lru': LRU(k, seq),
+        'combined': combinedAlg(k, seq, hseqNoisy, thr)
+    }
+    return results
+
+def runBatchOfTrials(numTrials, k, N, n, epsilon, gamma, omega):
+    """
+    Runs a batch of trials with specified paging and noise parameters, 
+    and aggregates the results across all trials to compute average page faults for each paging algorithm.
+
+    Parameters:
+        numTrials (int): Number of trials to run.
+        k (int): The size of the cache used in each paging algorithm.
+        N (int): The upper limit of the page request range [1...N].
+        n (int): The total number of page requests to be generated in each trial.
+        epsilon (float): Parameter controlling the amount of locality in the page request sequence.
+        gamma (float): Noise parameter representing the probability with which noise is added to the paging sequence.
+        omega (int): Noise parameter specifying the amplitude of noise to be added.
+
+    Returns:
+        dict: A dictionary containing the average number of page faults incurred by each algorithm across all trials,
+              along with the experiment parameters used for the batch.
+    """
+    results = []
+    for _ in range(numTrials):
+        trial_result = runSingleTrial(k, N, n, epsilon, gamma, omega)
+        results.append(trial_result)
+    
+    average_results = {
+        'numTrials': numTrials,
+        'k': k,
+        'N': N,
+        'n': n,
+        'epsilon': epsilon,
+        'gamma': gamma,
+        'omega': omega
+    }
+    
+    average_results.update({algorithm: 0 for algorithm in results[0]})
+
+    for result in results:
+        for algorithm in result:
+            average_results[algorithm] += result[algorithm] / numTrials
+    
+    return average_results
+
+
+def saveResultsToCSV(results, filename="data/results.csv"):
+    """
+    Saves the paging algorithm results and their corresponding experimental parameters to a CSV file.
+
+    Parameters:
+        results (list of dict): List of dictionaries containing the aggregate results for each algorithm along with the experiment parameters.
+        filename (str): The name of the file to save the results to.
+
+    Returns:
+        None
+    """
+    if not results:
+        return
+
+    directory = os.path.dirname(filename)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    headers = results[0].keys()
+    with open(filename, 'w') as f:
+        f.write(','.join(headers) + '\n')
+        for result in results:
+            row = [str(result[header]) for header in headers]
+            f.write(','.join(row) + '\n')
+
+# ---------------------------------------------------
 # UNIT TESTS
 # ---------------------------------------------------
 
@@ -386,6 +492,35 @@ def testcombinedAlg():
 # MAIN
 # ---------------------------------------------------
     
+def testCustom():
+    average_results = [
+        {
+            'numTrials': 10,
+            'k': 5,
+            'N': 10,
+            'n': 100,
+            'epsilon': 0.5,
+            'gamma': 0.6,
+            'omega': 0.7,
+            'opt' : 30,
+            'blindOracle': 40
+
+        },
+        {
+            'numTrials': 20,
+            'k': 50,
+            'N': 10,
+            'n': 100,
+            'epsilon': 0.5,
+            'gamma': 0.6,
+            'omega': 0.7,
+            'opt' : 30,
+            'blindOracle': 40
+
+        },
+    ]
+    saveResultsToCSV(average_results)
+
 def main():
     """
     Main function. Runs all the tests.
@@ -399,6 +534,9 @@ def main():
     testBlindOracle()
     testLRU()
     testcombinedAlg()
+    testCustom()
+
+
 
 if __name__ == "__main__":
     main()
