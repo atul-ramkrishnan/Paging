@@ -1,6 +1,8 @@
 import random
 import math
 import os
+from datetime import datetime
+
 
 # ---------------------------------------------------
 # ALGORITHMS
@@ -11,6 +13,24 @@ def _initializeLRUCache(k):
 
 def _initializeBlindOracleCache(k):
     return [(None, float('inf')) for _ in range(k)]
+
+def _floatRange(start, stop, step):
+    """
+    Generate a list of floating-point numbers starting from 'start' to 'stop' with increments of 'step'.
+
+    Args:
+        start (float): The starting value of the sequence.
+        stop (float): The end value of the sequence, exclusive.
+        step (float): The increment between consecutive values.
+
+    Returns:
+        list: A list of floating-point numbers from start to stop with a step of step.
+    """
+    values = []
+    while start < stop:
+        values.append(start)
+        start += step
+    return values
 
 def generateRandomSequence(k, N, n, epsilon):
     """
@@ -242,12 +262,13 @@ def runSingleTrial(k, N, n, epsilon, gamma, omega):
     }
     return results
 
-def runBatchOfTrials(numTrials, k, N, n, epsilon, gamma, omega):
+def runBatchOfTrials(regime, numTrials, k, N, n, epsilon, gamma, omega):
     """
     Runs a batch of trials with specified paging and noise parameters, 
     and aggregates the results across all trials to compute average page faults for each paging algorithm.
 
     Parameters:
+        regime (str): Identifier for the experimental setup or regime.
         numTrials (int): Number of trials to run.
         k (int): The size of the cache used in each paging algorithm.
         N (int): The upper limit of the page request range [1...N].
@@ -266,6 +287,8 @@ def runBatchOfTrials(numTrials, k, N, n, epsilon, gamma, omega):
         results.append(trial_result)
     
     average_results = {
+        'timestamp': datetime.now().isoformat(),
+        'regime': regime,
         'numTrials': numTrials,
         'k': k,
         'N': N,
@@ -286,7 +309,10 @@ def runBatchOfTrials(numTrials, k, N, n, epsilon, gamma, omega):
 
 def saveResultsToCSV(results, filename="data/results.csv"):
     """
-    Saves the paging algorithm results and their corresponding experimental parameters to a CSV file.
+    Saves or appends the paging algorithm results and their corresponding experimental parameters to a CSV file.
+
+    If the CSV file already exists, the function appends the results to the file without repeating the header.
+    If the file does not exist, it creates the file, writes the header, and then appends the results.
 
     Parameters:
         results (list of dict): List of dictionaries containing the aggregate results for each algorithm along with the experiment parameters.
@@ -296,18 +322,63 @@ def saveResultsToCSV(results, filename="data/results.csv"):
         None
     """
     if not results:
-        return
+        return  # If no results to save, simply return.
 
     directory = os.path.dirname(filename)
     if not os.path.exists(directory):
-        os.makedirs(directory)
+        os.makedirs(directory)  # Create the directory if it doesn't exist.
 
+    file_exists = os.path.exists(filename)
     headers = results[0].keys()
-    with open(filename, 'w') as f:
-        f.write(','.join(headers) + '\n')
+    
+    with open(filename, 'a' if file_exists else 'w') as f:
+        if not file_exists:
+            # Write the header only if the file does not exist.
+            f.write(','.join(headers) + '\n')
+        
         for result in results:
             row = [str(result[header]) for header in headers]
             f.write(','.join(row) + '\n')
+
+
+def runTrend(numTrials, parameter, start, end, step, regimes, filename):
+    """
+    Runs a set of experiments varying a specific parameter across two regimes, compiling results into a CSV file.
+    When 'k' is the parameter being varied, 'N' is automatically set to 10 * k for each value of k tested.
+
+    Args:
+        numTrials (int): Number of trials to run for each setting.
+        parameter (str): The parameter name to vary in this trend. This can be 'k', 'epsilon', 'gamma', or 'omega'.
+        start (int/float): The starting value of the parameter to vary.
+        end (int/float): The ending value of the parameter to vary.
+        step (int/float): The increment between values in the range.
+        regimes (list of dict): A list containing two regimes, each as a dictionary of parameters.
+                                Each regime should include initial values for 'k', 'N', 'n', 'epsilon', 'gamma', and 'omega'.
+        filename (str): The path to the CSV file where results will be saved.
+
+    Returns:
+        None: Results are saved directly to a CSV file.
+    """
+    results = []
+    values = _floatRange(start, end, step)
+    for value in values:
+        for i, regime in enumerate(regimes):
+            modifiedRegime = regime.copy()
+            modifiedRegime[parameter] = value
+            if parameter == 'k':
+                modifiedRegime['N'] = 10 * value
+            result = runBatchOfTrials(
+                i,
+                numTrials,
+                modifiedRegime['k'],
+                modifiedRegime['N'],
+                modifiedRegime['n'],
+                modifiedRegime['epsilon'],
+                modifiedRegime['gamma'],
+                modifiedRegime['omega']
+            )
+            results.append(result)
+    saveResultsToCSV(results, filename)
 
 # ---------------------------------------------------
 # UNIT TESTS
