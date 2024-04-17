@@ -564,33 +564,25 @@ def testcombinedAlg():
 # ---------------------------------------------------
     
 def testCustom():
-    average_results = [
-        {
-            'numTrials': 10,
-            'k': 5,
-            'N': 10,
-            'n': 100,
-            'epsilon': 0.5,
-            'gamma': 0.6,
-            'omega': 0.7,
-            'opt' : 30,
-            'blindOracle': 40
+    regime1 = {
+        'k': 10,
+        'N': 100,
+        'n': 1000,
+        'epsilon': 0.5,
+        'gamma': 0.5,
+        'omega': 2
+    }
+    regime2 = {
+        'k': 10,
+        'N': 100,
+        'n': 1000,
+        'epsilon': 0.1,
+        'gamma': 0.1,
+        'omega': 2
+    }
+    numTrials = 100
+    runTrend(numTrials, 'k', 10, 100, 10, [regime1, regime2], 'data/results.csv')
 
-        },
-        {
-            'numTrials': 20,
-            'k': 50,
-            'N': 10,
-            'n': 100,
-            'epsilon': 0.5,
-            'gamma': 0.6,
-            'omega': 0.7,
-            'opt' : 30,
-            'blindOracle': 40
-
-        },
-    ]
-    saveResultsToCSV(average_results)
 
 def main():
     """
@@ -599,15 +591,13 @@ def main():
     Returns:
         None
     """
-    testGenerateRandomSequence()
-    testGenerateH()
-    testAddNoise()
-    testBlindOracle()
-    testLRU()
-    testcombinedAlg()
+    # testGenerateRandomSequence()
+    # testGenerateH()
+    # testAddNoise()
+    # testBlindOracle()
+    # testLRU()
+    # testcombinedAlg()
     testCustom()
-
-
 
 if __name__ == "__main__":
     main()
