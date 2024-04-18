@@ -584,7 +584,7 @@ def findTrends():
         'N': 100,
         'n': 10000,
         'epsilon': 0.5,
-        'omega': 1000,
+        'omega': 500,
         'gamma': 0.3
     }
 
@@ -593,20 +593,21 @@ def findTrends():
         'N': 100,
         'n': 10000,
         'epsilon': 0.5,
-        'omega': 5000,
+        'omega': 1000,
         'gamma': 0.99
     }
     # Run experiments on Trend 1(dependence on k)
-    # runTrend(numTrials, 'k', 10, 100, 10, [regime1, regime2], 'data/trend1.csv')
+    runTrend(numTrials, 'k', 10, 100, 10, [regime1, regime2], 'data3/trend1.csv')
 
     # Run experiments on Trend 2(dependence on omega)
-    runTrend(numTrials, 'omega', 0, 10000, 1000, [regime1, regime2], 'data/trend2.csv')
+    runTrend(numTrials, 'omega', 0, 2000, 200, [regime1, regime2], 'data3/trend2.csv')
 
     # Run experiments on Trend 3(dependence on epsilon)
-    runTrend(numTrials, 'epsilon', 0, 1, 0.1, [regime1, regime2], 'data/trend3.csv')
+    runTrend(numTrials, 'epsilon', 0, 1, 0.1, [regime1, regime2], 'data3/trend3.csv')
 
     # Run experiments on Trend 4(dependence on gamma)
-    runTrend(numTrials, 'gamma', 0, 1, 0.1, [regime1, regime2], 'data/trend4.csv')
+    runTrend(numTrials, 'gamma', 0, 1, 0.1, [regime1, regime2], 'data3/trend4.csv')
+
 
 # ---------------------------------------------------
 # PLOTTING
@@ -655,7 +656,27 @@ def plotPageFaults(csvFile, xParam, xLabel, savePath):
 # ---------------------------------------------------
 # MAIN
 # ---------------------------------------------------
-    
+
+# def testCustom():
+#     regime1 = {
+#         'k': 10,
+#         'N': 100,
+#         'n': 10000,
+#         'epsilon': 0.5,
+#         'omega': 500,
+#         'gamma': 0.3
+#     }
+
+#     regime2 = {
+#         'k': 10,
+#         'N': 100,
+#         'n': 10000,
+#         'epsilon': 0.5,
+#         'omega': 1000,
+#         'gamma': 0.99
+#     }
+
+#     runTrend(100, 'k', 10, 10, 10, [regime1, regime2], 'data2/trend1.csv')
 def main():
     """
     Main function. Runs all the tests.
@@ -663,7 +684,7 @@ def main():
     Returns:
         None
     """
-    runAllTests()
+    # runAllTests()
     findTrends()
     
     
