@@ -2,6 +2,8 @@ import random
 import math
 import os
 from datetime import datetime
+import pandas as pd
+import matplotlib.pyplot as plt
 
 
 # ---------------------------------------------------
@@ -20,14 +22,14 @@ def _floatRange(start, stop, step):
 
     Args:
         start (float): The starting value of the sequence.
-        stop (float): The end value of the sequence, exclusive.
+        stop (float): The end value of the sequence, inclusive.
         step (float): The increment between consecutive values.
 
     Returns:
         list: A list of floating-point numbers from start to stop with a step of step.
     """
     values = []
-    while start < stop:
+    while start <= stop:
         values.append(start)
         start += step
     return values
@@ -252,7 +254,7 @@ def runSingleTrial(k, N, n, epsilon, gamma, omega):
     seq = generateRandomSequence(k, N, n, epsilon)
     hseq = generateH(seq)
     hseqNoisy = addNoise(hseq, gamma, omega)
-    thr = 0.5
+    thr = 0.2
 
     results = {
         'opt': blindOracle(k, seq, hseq),
@@ -302,7 +304,11 @@ def runBatchOfTrials(regime, numTrials, k, N, n, epsilon, gamma, omega):
 
     for result in results:
         for algorithm in result:
-            average_results[algorithm] += result[algorithm] / numTrials
+            average_results[algorithm] += result[algorithm]
+    
+    for algorithm in average_results.keys():
+        if algorithm in results[0]:
+            average_results[algorithm] = round(average_results[algorithm] / numTrials, 3)
     
     return average_results
 
@@ -311,8 +317,8 @@ def saveResultsToCSV(results, filename="data/results.csv"):
     """
     Saves or appends the paging algorithm results and their corresponding experimental parameters to a CSV file.
 
-    If the CSV file already exists, the function appends the results to the file without repeating the header.
-    If the file does not exist, it creates the file, writes the header, and then appends the results.
+    If the CSV file already exists but is empty, or if it does not exist, the function writes the header before appending the results.
+    Otherwise, it appends the results directly without repeating the header.
 
     Parameters:
         results (list of dict): List of dictionaries containing the aggregate results for each algorithm along with the experiment parameters.
@@ -322,24 +328,27 @@ def saveResultsToCSV(results, filename="data/results.csv"):
         None
     """
     if not results:
-        return  # If no results to save, simply return.
+        return
 
     directory = os.path.dirname(filename)
     if not os.path.exists(directory):
-        os.makedirs(directory)  # Create the directory if it doesn't exist.
+        os.makedirs(directory)
 
+    # Check if the file exists and is not empty
     file_exists = os.path.exists(filename)
-    headers = results[0].keys()
+    write_headers = not file_exists or (file_exists and os.path.getsize(filename) == 0)
     
-    with open(filename, 'a' if file_exists else 'w') as f:
-        if not file_exists:
-            # Write the header only if the file does not exist.
+    headers = results[0].keys()
+    mode = 'a' if file_exists and not write_headers else 'w'
+    
+    with open(filename, mode) as f:
+        if write_headers:
+            # Write the header only if the file does not exist or is empty
             f.write(','.join(headers) + '\n')
         
         for result in results:
             row = [str(result[header]) for header in headers]
             f.write(','.join(row) + '\n')
-
 
 def runTrend(numTrials, parameter, start, end, step, regimes, filename):
     """
@@ -368,7 +377,7 @@ def runTrend(numTrials, parameter, start, end, step, regimes, filename):
             if parameter == 'k':
                 modifiedRegime['N'] = 10 * value
             result = runBatchOfTrials(
-                i,
+                i + 1,
                 numTrials,
                 modifiedRegime['k'],
                 modifiedRegime['N'],
@@ -379,7 +388,7 @@ def runTrend(numTrials, parameter, start, end, step, regimes, filename):
             )
             results.append(result)
     saveResultsToCSV(results, filename)
-
+    
 # ---------------------------------------------------
 # UNIT TESTS
 # ---------------------------------------------------
@@ -559,31 +568,94 @@ def testcombinedAlg():
 
     print("All tests passed.")
 
+def runAllTests():
+    testGenerateRandomSequence()
+    testGenerateH()
+    testAddNoise()
+    testBlindOracle()
+    testLRU()
+    testcombinedAlg()
+
+def findTrends():
+    numTrials = 100
+
+    regime1 = {
+        'k': 10,
+        'N': 100,
+        'n': 10000,
+        'epsilon': 0.5,
+        'omega': 1000,
+        'gamma': 0.3
+    }
+
+    regime2 = {
+        'k': 10,
+        'N': 100,
+        'n': 10000,
+        'epsilon': 0.5,
+        'omega': 5000,
+        'gamma': 0.99
+    }
+    # Run experiments on Trend 1(dependence on k)
+    # runTrend(numTrials, 'k', 10, 100, 10, [regime1, regime2], 'data/trend1.csv')
+
+    # Run experiments on Trend 2(dependence on omega)
+    runTrend(numTrials, 'omega', 0, 10000, 1000, [regime1, regime2], 'data/trend2.csv')
+
+    # Run experiments on Trend 3(dependence on epsilon)
+    runTrend(numTrials, 'epsilon', 0, 1, 0.1, [regime1, regime2], 'data/trend3.csv')
+
+    # Run experiments on Trend 4(dependence on gamma)
+    runTrend(numTrials, 'gamma', 0, 1, 0.1, [regime1, regime2], 'data/trend4.csv')
+
+# ---------------------------------------------------
+# PLOTTING
+# ---------------------------------------------------
+def plotPageFaults(csvFile, xParam, xLabel, savePath):
+    """
+    Plots the number of page faults for each paging algorithm from a CSV file,
+    separated by regime, against a specified parameter and saves the plot to a file.
+
+    Parameters:
+        csvFile (str): The path to the CSV file containing the experiment results.
+        xParam (str): The parameter to use on the x-axis (e.g., 'k', 'epsilon', 'gamma', 'omega').
+        xLabel (str): The name of the label to use on the x-axis.
+        savePath (str): The path to save the resulting plot image file.
+
+    """
+    data = pd.read_csv(csvFile)
+
+    # Plot settings
+    algorithms = ['opt', 'blindoracle', 'lru', 'combined']
+    colors = ['blue', 'green', 'red', 'purple']
+    markers = ['o', '^', 's', 'x']
+    
+    # Create a figure with two subplots (one for each regime), sharing y-axis for comparison
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(14, 6), sharey=True)
+    
+    for i, regime in enumerate([1, 2]):
+        # Filter data for the current regime
+        regimeData = data[data['regime'] == regime]
+        
+        for alg, color, marker in zip(algorithms, colors, markers):
+            axes[i].plot(regimeData[xParam], regimeData[alg], label=alg, color=color, marker=marker, markersize=8)
+
+        axes[i].set_title(f'Regime {regime}')
+        axes[i].set_xlabel(f'{xLabel}')
+        axes[i].set_ylabel('Page Faults')
+        axes[i].legend(title='Algorithms')
+
+    plt.suptitle('Page Faults vs. ' + xParam.capitalize())
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # Adjust the layout to make room for the title
+    
+    # Save the figure to the specified path
+    plt.savefig(savePath)
+    plt.close(fig)
+
 # ---------------------------------------------------
 # MAIN
 # ---------------------------------------------------
     
-def testCustom():
-    regime1 = {
-        'k': 10,
-        'N': 100,
-        'n': 1000,
-        'epsilon': 0.5,
-        'gamma': 0.5,
-        'omega': 2
-    }
-    regime2 = {
-        'k': 10,
-        'N': 100,
-        'n': 1000,
-        'epsilon': 0.1,
-        'gamma': 0.1,
-        'omega': 2
-    }
-    numTrials = 100
-    runTrend(numTrials, 'k', 10, 100, 10, [regime1, regime2], 'data/results.csv')
-
-
 def main():
     """
     Main function. Runs all the tests.
@@ -591,13 +663,10 @@ def main():
     Returns:
         None
     """
-    # testGenerateRandomSequence()
-    # testGenerateH()
-    # testAddNoise()
-    # testBlindOracle()
-    # testLRU()
-    # testcombinedAlg()
-    testCustom()
+    runAllTests()
+    findTrends()
+    
+    
 
 if __name__ == "__main__":
     main()
