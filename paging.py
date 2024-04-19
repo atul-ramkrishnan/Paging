@@ -1,20 +1,15 @@
 import random
 import math
 import os
+import sys
 from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
 
 
 # ---------------------------------------------------
-# ALGORITHMS
+# HELPER FUNCTIONS
 # ---------------------------------------------------
-
-def _initializeLRUCache(k):
-    return [None] * k
-
-def _initializeBlindOracleCache(k):
-    return [(None, float('inf')) for _ in range(k)]
 
 def _floatRange(start, stop, step):
     """
@@ -33,6 +28,72 @@ def _floatRange(start, stop, step):
         values.append(start)
         start += step
     return values
+
+def _saveResultsToCSV(results, filename="data/results.csv"):
+    """
+    Saves or appends the paging algorithm results and their corresponding experimental parameters to a CSV file.
+
+    If the CSV file already exists but is empty, or if it does not exist, the function writes the header before appending the results.
+    Otherwise, it appends the results directly without repeating the header.
+
+    Parameters:
+        results (list of dict): List of dictionaries containing the aggregate results for each algorithm along with the experiment parameters.
+        filename (str): The name of the file to save the results to.
+
+    Returns:
+        None
+    """
+    if not results:
+        return
+
+    directory = os.path.dirname(filename)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    # Check if the file exists and is not empty
+    fileExists = os.path.exists(filename)
+    writeHeaders = not fileExists or (fileExists and os.path.getsize(filename) == 0)
+    
+    headers = results[0].keys()
+    mode = 'a' if fileExists and not writeHeaders else 'w'
+    
+    with open(filename, mode) as f:
+        if writeHeaders:
+            # Write the header only if the file does not exist or is empty
+            f.write(','.join(headers) + '\n')
+        
+        for result in results:
+            row = [str(result[header]) for header in headers]
+            f.write(','.join(row) + '\n')
+
+# ---------------------------------------------------
+# ALGORITHMS
+# ---------------------------------------------------
+
+def _initializeLRUCache(k):
+    """
+    Initializes a Least Recently Used (LRU) cache.
+
+    Parameters:
+        k (int): The size of the cache.
+
+    Returns:
+        list: A list of length `k`, with all elements initialized to `None`, representing an empty LRU cache.
+    """
+    return [None] * k
+
+def _initializeBlindOracleCache(k):
+    """
+    Initializes a cache for the Blind Oracle algorithm.
+
+    Parameters:
+        k (int): The size of the cache (number of cache slots).
+
+    Returns:
+        list: A list of tuples of length `k`, each tuple initialized as `(None, float('inf'))`, representing
+              an empty cache with infinite future request times.
+    """
+    return [(None, float('inf')) for _ in range(k)]
 
 def generateRandomSequence(k, N, n, epsilon):
     """
@@ -79,16 +140,16 @@ def generateH(seq):
     """
     n = len(seq)
     h = [n + 1] * n
-    last_positions = {}  # Dictionary to store the last position of each element
+    lastPositions = {}  # Dictionary to store the last position of each element
 
     # Traverse the sequence in reverse
     for i in range(n - 1, -1, -1):
         element = seq[i]
-        if element in last_positions:
+        if element in lastPositions:
             # If the element has been seen before, update h[i] with the position of the next occurrence
-            h[i] = last_positions[element] + 1
+            h[i] = lastPositions[element] + 1
         # Update the last position of the current element
-        last_positions[element] = i
+        lastPositions[element] = i
 
     return h
 
@@ -285,10 +346,10 @@ def runBatchOfTrials(regime, numTrials, k, N, n, epsilon, gamma, omega):
     """
     results = []
     for _ in range(numTrials):
-        trial_result = runSingleTrial(k, N, n, epsilon, gamma, omega)
-        results.append(trial_result)
+        trialResult = runSingleTrial(k, N, n, epsilon, gamma, omega)
+        results.append(trialResult)
     
-    average_results = {
+    averageResults = {
         'timestamp': datetime.now().isoformat(),
         'regime': regime,
         'numTrials': numTrials,
@@ -300,55 +361,17 @@ def runBatchOfTrials(regime, numTrials, k, N, n, epsilon, gamma, omega):
         'omega': omega
     }
     
-    average_results.update({algorithm: 0 for algorithm in results[0]})
+    averageResults.update({algorithm: 0 for algorithm in results[0]})
 
     for result in results:
         for algorithm in result:
-            average_results[algorithm] += result[algorithm]
+            averageResults[algorithm] += result[algorithm]
     
-    for algorithm in average_results.keys():
+    for algorithm in averageResults.keys():
         if algorithm in results[0]:
-            average_results[algorithm] = round(average_results[algorithm] / numTrials, 3)
+            averageResults[algorithm] = round(averageResults[algorithm] / numTrials, 3)
     
-    return average_results
-
-
-def saveResultsToCSV(results, filename="data/results.csv"):
-    """
-    Saves or appends the paging algorithm results and their corresponding experimental parameters to a CSV file.
-
-    If the CSV file already exists but is empty, or if it does not exist, the function writes the header before appending the results.
-    Otherwise, it appends the results directly without repeating the header.
-
-    Parameters:
-        results (list of dict): List of dictionaries containing the aggregate results for each algorithm along with the experiment parameters.
-        filename (str): The name of the file to save the results to.
-
-    Returns:
-        None
-    """
-    if not results:
-        return
-
-    directory = os.path.dirname(filename)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-    # Check if the file exists and is not empty
-    file_exists = os.path.exists(filename)
-    write_headers = not file_exists or (file_exists and os.path.getsize(filename) == 0)
-    
-    headers = results[0].keys()
-    mode = 'a' if file_exists and not write_headers else 'w'
-    
-    with open(filename, mode) as f:
-        if write_headers:
-            # Write the header only if the file does not exist or is empty
-            f.write(','.join(headers) + '\n')
-        
-        for result in results:
-            row = [str(result[header]) for header in headers]
-            f.write(','.join(row) + '\n')
+    return averageResults
 
 def runTrend(numTrials, parameter, start, end, step, regimes, filename):
     """
@@ -387,8 +410,108 @@ def runTrend(numTrials, parameter, start, end, step, regimes, filename):
                 modifiedRegime['omega']
             )
             results.append(result)
-    saveResultsToCSV(results, filename)
+    _saveResultsToCSV(results, filename)
     
+def findTrends():
+    """
+    Executes a series of experimental runs to identify trends across various paging algorithm parameters.
+    Each trend is evaluated for two different regimes. The results are saved to separate CSV files for each trend analysis.
+
+    Outputs:
+        Data files (CSV format) for each trend, saved in the 'data/' directory with the names:
+        - trend1.csv: Results from varying 'k'.
+        - trend2.csv: Results from varying 'omega'.
+        - trend3.csv: Results from varying 'epsilon'.
+        - trend4.csv: Results from varying 'gamma'.
+    
+    Returns:
+        None
+    """
+    numTrials = 100
+
+    regime1 = {
+        'k': 10,
+        'N': 100,
+        'n': 10000,
+        'epsilon': 0.5,
+        'omega': 500,
+        'gamma': 0.3
+    }
+
+    regime2 = {
+        'k': 10,
+        'N': 100,
+        'n': 10000,
+        'epsilon': 0.5,
+        'omega': 1000,
+        'gamma': 0.99
+    }
+    # Run experiments on Trend 1(dependence on k)
+    runTrend(numTrials, 'k', 10, 100, 10, [regime1, regime2], 'data/trend1.csv')
+
+    # Run experiments on Trend 2(dependence on omega)
+    runTrend(numTrials, 'omega', 0, 2000, 200, [regime1, regime2], 'data/trend2.csv')
+
+    # Run experiments on Trend 3(dependence on epsilon)
+    runTrend(numTrials, 'epsilon', 0, 1, 0.1, [regime1, regime2], 'data/trend3.csv')
+
+    # Run experiments on Trend 4(dependence on gamma)
+    runTrend(numTrials, 'gamma', 0, 1, 0.1, [regime1, regime2], 'data/trend4.csv')
+
+# ---------------------------------------------------
+# PLOTTING
+# ---------------------------------------------------
+
+def plotTrend(csvFile, xParam, xLabel, filename):
+    """
+    Plots the number of page faults for each paging algorithm from a CSV file,
+    separated by regime, against a specified parameter and saves the plot to a file.
+
+    Parameters:
+        csvFile (str): The path to the CSV file containing the experiment results.
+        xParam (str): The parameter to use on the x-axis (e.g., 'k', 'epsilon', 'gamma', 'omega').
+        xLabel (str): The name of the label to use on the x-axis.
+        savePath (str): The path to save the resulting plot image file.
+
+    """
+    directory = os.path.dirname(filename)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    data = pd.read_csv(csvFile)
+
+    # Plot settings
+    algorithms = ['opt', 'blindoracle', 'lru', 'combined']
+    colors = ['blue', 'green', 'red', 'purple']
+    markers = ['o', '^', 's', 'x']
+    
+    # Create a figure with two subplots (one for each regime), sharing y-axis for comparison
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(14, 6), sharey=True)
+    
+    for i, regime in enumerate([1, 2]):
+        # Filter data for the current regime
+        regimeData = data[data['regime'] == regime]
+        
+        for alg, color, marker in zip(algorithms, colors, markers):
+            axes[i].plot(regimeData[xParam], regimeData[alg], label=alg, color=color, marker=marker, markersize=8)
+
+        axes[i].set_title(f'Regime {regime}')
+        axes[i].set_xlabel(f'{xLabel}')
+        axes[i].set_ylabel('Page Faults')
+        axes[i].legend(title='Algorithms')
+
+    plt.suptitle('Page Faults vs. ' + xLabel)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # Adjust the layout to make room for the title
+    
+    plt.savefig(filename)
+    plt.close(fig)
+
+def plotAllTrends():
+    plotTrend('data/trend1.csv', 'k', 'k (cache size)', 'images/trend1.png')
+    plotTrend('data/trend2.csv', 'omega', 'ω', 'images/trend2.png')
+    plotTrend('data/trend3.csv', 'epsilon', 'ε', 'images/trend3.png')
+    plotTrend('data/trend4.csv', 'gamma', 'Γ', 'images/trend4.png')
+
 # ---------------------------------------------------
 # UNIT TESTS
 # ---------------------------------------------------
@@ -460,9 +583,9 @@ def testAddNoise():
 
     trials = 10    # Number of times to run the test for statistical significance
     hseq = [12, 4, 5, 7, 8, 9, 10, 12, 12, 11, 12]
-    num_steps = 10
+    numSteps = 10
     for _ in range(trials):
-        for gamma in [i / num_steps for i in range(num_steps + 1)]:
+        for gamma in [i / numSteps for i in range(numSteps + 1)]:
             for omega in range(1, 10):
                 hHat = addNoise(hseq, gamma, omega)
                 for i, (original, noisy) in enumerate(zip(hseq, hHat)):
@@ -569,6 +692,12 @@ def testcombinedAlg():
     print("All tests passed.")
 
 def runAllTests():
+    """
+    Runs all the unit tests.
+
+    Returns:
+        None
+    """
     testGenerateRandomSequence()
     testGenerateH()
     testAddNoise()
@@ -576,118 +705,41 @@ def runAllTests():
     testLRU()
     testcombinedAlg()
 
-def findTrends():
-    numTrials = 100
-
-    regime1 = {
-        'k': 10,
-        'N': 100,
-        'n': 10000,
-        'epsilon': 0.5,
-        'omega': 500,
-        'gamma': 0.3
-    }
-
-    regime2 = {
-        'k': 10,
-        'N': 100,
-        'n': 10000,
-        'epsilon': 0.5,
-        'omega': 1000,
-        'gamma': 0.99
-    }
-    # Run experiments on Trend 1(dependence on k)
-    runTrend(numTrials, 'k', 10, 100, 10, [regime1, regime2], 'data3/trend1.csv')
-
-    # Run experiments on Trend 2(dependence on omega)
-    runTrend(numTrials, 'omega', 0, 2000, 200, [regime1, regime2], 'data3/trend2.csv')
-
-    # Run experiments on Trend 3(dependence on epsilon)
-    runTrend(numTrials, 'epsilon', 0, 1, 0.1, [regime1, regime2], 'data3/trend3.csv')
-
-    # Run experiments on Trend 4(dependence on gamma)
-    runTrend(numTrials, 'gamma', 0, 1, 0.1, [regime1, regime2], 'data3/trend4.csv')
-
-
-# ---------------------------------------------------
-# PLOTTING
-# ---------------------------------------------------
-def plotPageFaults(csvFile, xParam, xLabel, savePath):
-    """
-    Plots the number of page faults for each paging algorithm from a CSV file,
-    separated by regime, against a specified parameter and saves the plot to a file.
-
-    Parameters:
-        csvFile (str): The path to the CSV file containing the experiment results.
-        xParam (str): The parameter to use on the x-axis (e.g., 'k', 'epsilon', 'gamma', 'omega').
-        xLabel (str): The name of the label to use on the x-axis.
-        savePath (str): The path to save the resulting plot image file.
-
-    """
-    data = pd.read_csv(csvFile)
-
-    # Plot settings
-    algorithms = ['opt', 'blindoracle', 'lru', 'combined']
-    colors = ['blue', 'green', 'red', 'purple']
-    markers = ['o', '^', 's', 'x']
-    
-    # Create a figure with two subplots (one for each regime), sharing y-axis for comparison
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(14, 6), sharey=True)
-    
-    for i, regime in enumerate([1, 2]):
-        # Filter data for the current regime
-        regimeData = data[data['regime'] == regime]
-        
-        for alg, color, marker in zip(algorithms, colors, markers):
-            axes[i].plot(regimeData[xParam], regimeData[alg], label=alg, color=color, marker=marker, markersize=8)
-
-        axes[i].set_title(f'Regime {regime}')
-        axes[i].set_xlabel(f'{xLabel}')
-        axes[i].set_ylabel('Page Faults')
-        axes[i].legend(title='Algorithms')
-
-    plt.suptitle('Page Faults vs. ' + xParam.capitalize())
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # Adjust the layout to make room for the title
-    
-    # Save the figure to the specified path
-    plt.savefig(savePath)
-    plt.close(fig)
-
 # ---------------------------------------------------
 # MAIN
 # ---------------------------------------------------
 
-# def testCustom():
-#     regime1 = {
-#         'k': 10,
-#         'N': 100,
-#         'n': 10000,
-#         'epsilon': 0.5,
-#         'omega': 500,
-#         'gamma': 0.3
-#     }
-
-#     regime2 = {
-#         'k': 10,
-#         'N': 100,
-#         'n': 10000,
-#         'epsilon': 0.5,
-#         'omega': 1000,
-#         'gamma': 0.99
-#     }
-
-#     runTrend(100, 'k', 10, 10, 10, [regime1, regime2], 'data2/trend1.csv')
 def main():
     """
-    Main function. Runs all the tests.
+    Main function. Runs specific functions based on command line argument.
+
+    Usage:
+        python script_name.py runAllTests
+        python script_name.py findTrends
+        python script_name.py plotAllTrends
 
     Returns:
         None
     """
-    # runAllTests()
-    findTrends()
+    if len(sys.argv) < 2:
+        print("Usage: python script_name.py [function_name]")
+        print("function_name can be 'runAllTests', 'findTrends', or 'plotAllTrends'")
+        sys.exit(1)
+
+    command = sys.argv[1]
     
+    functions = {
+        'runAllTests': runAllTests,
+        'findTrends': findTrends,
+        'plotAllTrends': plotAllTrends
+    }
     
+    if command in functions:
+        functions[command]()
+    else:
+        print(f"Unknown command: {command}")
+        print("Valid commands are: 'runAllTests', 'findTrends', 'plotAllTrends'")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
