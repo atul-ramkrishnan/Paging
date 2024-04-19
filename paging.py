@@ -506,7 +506,7 @@ def plotTrend(csvFile, xParam, xLabel, filename):
     plt.savefig(filename)
     plt.close(fig)
 
-def plotAllTrends():
+def plotTrends():
     plotTrend('data/trend1.csv', 'k', 'k (cache size)', 'images/trend1.png')
     plotTrend('data/trend2.csv', 'omega', 'ω', 'images/trend2.png')
     plotTrend('data/trend3.csv', 'epsilon', 'ε', 'images/trend3.png')
@@ -691,7 +691,7 @@ def testcombinedAlg():
 
     print("All tests passed.")
 
-def runAllTests():
+def runTests():
     """
     Runs all the unit tests.
 
@@ -714,31 +714,31 @@ def main():
     Main function. Runs specific functions based on command line argument.
 
     Usage:
-        python script_name.py runAllTests
-        python script_name.py findTrends
-        python script_name.py plotAllTrends
+        python paging.py runTests
+        python paging.py findTrends
+        python paging.py plotTrends
 
     Returns:
         None
     """
     if len(sys.argv) < 2:
-        print("Usage: python script_name.py [function_name]")
-        print("function_name can be 'runAllTests', 'findTrends', or 'plotAllTrends'")
+        print("Usage: python paging.py [function_name]")
+        print("function_name can be 'runTests', 'findTrends', or 'plotTrends'")
         sys.exit(1)
 
     command = sys.argv[1]
     
     functions = {
-        'runAllTests': runAllTests,
+        'runTests': runTests,
         'findTrends': findTrends,
-        'plotAllTrends': plotAllTrends
+        'plotTrends': plotTrends
     }
     
     if command in functions:
         functions[command]()
     else:
         print(f"Unknown command: {command}")
-        print("Valid commands are: 'runAllTests', 'findTrends', 'plotAllTrends'")
+        print("Valid commands are: 'runTests', 'findTrends', 'plotTrends'")
         sys.exit(1)
 
 if __name__ == "__main__":
