@@ -7,6 +7,25 @@ Then you can plot the results of the experiments as a graph. Plotting the graphs
   matplotlib 3.8.4 
   pandas 2.1.1  
 
+  The experiments parameters are --
+  n = 10000
+  regime1 = {
+        'k': 10,
+        'N': 100,
+        'n': 10000,
+        'epsilon': 0.5,
+        'omega': 500,
+        'gamma': 0.3
+    }
+
+    regime2 = {
+        'k': 10,
+        'N': 100,
+        'n': 10000,
+        'epsilon': 0.5,
+        'omega': 1000,
+        'gamma': 0.99
+    }
 
 ## Usage
 To run the code, first you need to go the project directory.
