@@ -2,39 +2,83 @@
 
 ## Implementation details
 The project is implemented in Python 3.12.2
+The project runs the experiments and saves the results as a .csv file.
+Then you can plot the results of the experiments as a graph. Plotting the graphs requires the following packages --
+  matplotlib 3.8.4 
+  pandas 2.1.1  
 
 
-## How to run the main script
-To run the code, first you need to go the project directory
+## Usage
+To run the code, first you need to go the project directory.
 
-Once you are in the paging directory, the code can be run using the command below:
-python paging.py
+To run the script, use one of the following commands depending on the function you wish to execute
+1. Run tests
+  python paging.py runTests
+
+2. Find trends
+  python paging.py findTrends
+
+3. Plot trends
+  python paging.py plotTrends
 
 
 ## Expected output
-The main function runs all the test cases. In the case of no errors, the output should be:
-========== Testing generateRandomSequence ==========
-All tests passed.
-========== Testing generateH ==========
-All tests passed.
-========== Testing addNoise ==========
-All tests passed.
-========== Testing blindOracle ==========
-All tests passed.
-========== Testing LRU ==========
-All tests passed.
-========== Testing combinedAlg ==========
-All tests passed.
+1. python paging.py runTests
 
-If there are any errors, the assertion will fail with an appropriate message. For instance,
-Traceback (most recent call last):
-  File "/Users/atulramkrishnan/Documents/GitHub/Paging/paging.py", line 241, in <module>
-    main()
-  File "/Users/atulramkrishnan/Documents/GitHub/Paging/paging.py", line 237, in main
-    testBlindOracle()
-  File "/Users/atulramkrishnan/Documents/GitHub/Paging/paging.py", line 211, in testBlindOracle
-    assert pageFaults == 4, "Incorrect number of page faults"
-AssertionError: Incorrect number of page faults
+  In the case of no errors, the output should be:
+  ========== Testing generateRandomSequence ==========
+  All tests passed.
+  ========== Testing generateH ==========
+  All tests passed.
+  ========== Testing addNoise ==========
+  All tests passed.
+  ========== Testing blindOracle ==========
+  All tests passed.
+  ========== Testing LRU ==========
+  All tests passed.
+  ========== Testing combinedAlg ==========
+  All tests passed.
+
+  If there are any errors, the assertion will fail with an appropriate message. For instance,
+  Traceback (most recent call last):
+    File "/Users/atulramkrishnan/Documents/GitHub/Paging/paging.py", line 241, in <module>
+      main()
+    File "/Users/atulramkrishnan/Documents/GitHub/Paging/paging.py", line 237, in main
+      testBlindOracle()
+    File "/Users/atulramkrishnan/Documents/GitHub/Paging/paging.py", line 211, in testBlindOracle
+      assert pageFaults == 4, "Incorrect number of page faults"
+  AssertionError: Incorrect number of page faults
+
+2. python paging.py findTrends
+  This function runs silently without console outputs and performs a series of experimental runs to identify how different parameters influence the performance of paging algorithms.
+  The results from these experiments are saved into CSV files, and no direct output is printed to the console. Here's what to expect:
+  Files Created
+
+  The function will generate several CSV files, each corresponding to a different trend analysis. These files will be saved in the 'data/' directory:
+
+    trend1.csv: Contains the results of experiments varying the cache size ('k'). The file records outcomes for each set value of 'k' from 10 to 100 in increments of 10.
+
+    trend2.csv: Contains the results of experiments varying the noise amplitude ('omega'). The file records outcomes for each set value of 'omega' from 0 to 2000 in increments of 200.
+
+    trend3.csv: Contains the results of experiments varying the locality parameter ('epsilon'). The file records outcomes for each set value of 'epsilon' from 0 to 1 in increments of 0.1.
+
+    trend4.csv: Contains the results of experiments varying the noise probability ('gamma'). The file records outcomes for each set value of 'gamma' from 0 to 1 in increments of 0.1.
+
+3. python paging.py plotTrends
+  This function generates plots based on the data from various trend analyses and saves these plots as image files.
+  Note that this function expects to find the necessary .csv files in the 'data/' folder. Please ensure that all required .csv files are placed in the correct subdirectory before running the function.
+  It operates silently without console outputs unless there's an error. Here's what to expect:
+  Files Created
+
+  The function will generate several image files, each corresponding to a different trend analysis. These files are saved in the 'images/' directory:
+
+    trend1.png: A plot showing the results of varying cache size ('k'). It visualizes how the number of page faults changes with different cache sizes for each paging algorithm.
+
+    trend2.png: A plot displaying the effects of varying noise amplitude ('omega'). This plot illustrates the impact of increasing noise on the number of page faults.
+
+    trend3.png: A plot detailing the influence of the locality parameter ('epsilon'). It shows how different levels of locality affect page fault rates.
+
+    trend4.png: A plot focused on the changes in page faults as the noise probability ('gamma') is adjusted.
 
 
 ## Unit tests
