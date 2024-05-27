@@ -1,50 +1,55 @@
 # Paging
 
+This project implements and evaluates four different paging algorithms to analyze their performance in managing memory paging. The aim is to compare these algorithms based on the number of page faults they incur when handling randomly generated input sequences.
+
+#### Implemented Paging Algorithms:
+
+1. **LRU (Least Recently Used)**
+2. **Optimal (Farthest in the Future)**
+3. **Blind Oracle (Predicted Farthest in the Future)**: Predicts page eviction based on future access patterns, although predictions are randomly generated and not calculated in this project.
+4. **Combined Algorithm**: A hybrid approach that dynamically switches between LRU and Blind Oracle based on their respective performances.
+
+#### Features:
+
+- **Experimentation Functions**: The project provides functions to conduct experiments and analyze the performance of each algorithm.
+- **Scenario-based Analysis**: Different scenarios, such as input sequences with high locality, are considered to evaluate algorithm performance comprehensively.
+- **Trend Plotting**: Trends and comparative analyses are plotted to visualize the performance of each algorithm under various conditions.
+
+The project serves as a valuable resource for understanding and comparing the efficiency of different paging algorithms in managing memory resources.
+
 ## Implementation details
 The project is implemented in Python 3.12.2
 The project runs the experiments and saves the results as a .csv file.
 Then you can plot the results of the experiments as a graph. Plotting the graphs requires the following packages --
-  matplotlib 3.8.4 
-  pandas 2.1.1  
 
-  The experiments parameters are --
-  n = 10000
-  regime1 = {
-        'k': 10,
-        'N': 100,
-        'n': 10000,
-        'epsilon': 0.5,
-        'omega': 500,
-        'gamma': 0.3
-    }
-
-    regime2 = {
-        'k': 10,
-        'N': 100,
-        'n': 10000,
-        'epsilon': 0.5,
-        'omega': 1000,
-        'gamma': 0.99
-    }
+  matplotlib 3.8.4\
+  pandas 2.1.1
 
 ## Usage
 To run the code, first you need to go the project directory.
 
 To run the script, use one of the following commands depending on the function you wish to execute
 1. Run tests
+```bash
   python paging.py runTests
+```
 
 2. Find trends
+```bash
   python paging.py findTrends
+```
 
 3. Plot trends
+```bash
   python paging.py plotTrends
+```
 
 
 ## Expected output
 1. python paging.py runTests
 
   In the case of no errors, the output should be:
+```bash
   ========== Testing generateRandomSequence ==========
   All tests passed.
   ========== Testing generateH ==========
@@ -57,8 +62,9 @@ To run the script, use one of the following commands depending on the function y
   All tests passed.
   ========== Testing combinedAlg ==========
   All tests passed.
-
+```
   If there are any errors, the assertion will fail with an appropriate message. For instance,
+```bash
   Traceback (most recent call last):
     File "/Users/atulramkrishnan/Documents/GitHub/Paging/paging.py", line 241, in <module>
       main()
@@ -67,6 +73,7 @@ To run the script, use one of the following commands depending on the function y
     File "/Users/atulramkrishnan/Documents/GitHub/Paging/paging.py", line 211, in testBlindOracle
       assert pageFaults == 4, "Incorrect number of page faults"
   AssertionError: Incorrect number of page faults
+```
 
 2. python paging.py findTrends
   This function runs silently without console outputs and performs a series of experimental runs to identify how different parameters influence the performance of paging algorithms.
@@ -101,26 +108,26 @@ To run the script, use one of the following commands depending on the function y
 
 
 ## Unit tests
-testGenerateRandomSequence()
+testGenerateRandomSequence()\
 The test cases in testGenerateRandomSequence focus on validating the properties of the generated random sequence.
 For instance, the test check if the numbers generated as part of the sequence are in the range [1, N].
 The test also checks if the numbers generated in the edge case where eps = 1.0 are in the range [1, k].
 To account for the inherent randomness in the generateRandomSequence function, the tests are run 'trial' times.
 
-testGenerateH()
+testGenerateH()\
 The test cases in testGenerateH validate generated h-values against expected h-values for a set of sequences.
 
-testAddNoise()
+testAddNoise()\
 The test cases in testAddNoise test that the added noise is the expected range for a set of values of (gamma, omega) on a particular sequence of hseq
 As in testGenerateRandomSequence, to account for the inherent randomness in the generateRandomSequence function, the tests are run 'trial' times.
 
-testBlindOracle()
+testBlindOracle()\
 The test cases in testBlindOracle test the number of page faults against the expected number of page faults for a set of (k, seq, hseq) tuples.
 
-testLRU()
+testLRU()\
 The test cases in testLRU test the number of page faults against the expected number of page faults for a set of (k, seq) tuples.
 
-testcombinedAlg()
+testcombinedAlg()\
 The test cases in testBlindOracle test the number of page faults against the expected number of page faults for a set of (k, seq, hseq, thr) tuples.
 Most test cases run the combinedAlg for the the h-values without any added noise, essentially making the blindOracle into OPT. In this case, it would
 benefit the combinedAlg to switch from LRU to blindOracle as soon as possible. In other words, a lower threshold should yield a lower number of page faults.
